@@ -49,6 +49,15 @@ done
 if [ -n "\${u:-}" ]; then
   echo "\$u" > "$DADOS/endereco.txt"
   echo "REVELA no ar: \$u"
+  # Copia o link e avisa (precisa do app Termux:API; sem ele só mostra na tela)
+  command -v termux-clipboard-set >/dev/null && printf '%s' "\$u" | termux-clipboard-set 2>/dev/null
+  command -v termux-toast >/dev/null && termux-toast "REVELA ligado - link copiado" 2>/dev/null
+  command -v termux-notification >/dev/null && termux-notification --id revela --ongoing \\
+    --title "REVELA no ar" --content "\$u" \\
+    --button1 "Copiar link" --button1-action "printf %s \$u | termux-clipboard-set; termux-toast Link_copiado" \\
+    --button2 "Abrir" --button2-action "termux-open-url \$u" \\
+    --button3 "Desligar" --button3-action "revela-desligar" 2>/dev/null
+  true
 else
   echo "Servidor ligado, mas o endereço público ainda não apareceu. Rode: revela-endereco"
 fi
@@ -65,7 +74,22 @@ git -C "$DIR" pull --ff-only && (cd "$DIR" && npm install --omit=dev --no-audit 
 python -m pip install -q --upgrade "yt-dlp[default]"
 revela-ligar
 EOF
-chmod +x "$PREFIXO/bin/revela-ligar" "$PREFIXO/bin/revela-endereco" "$PREFIXO/bin/revela-atualizar"
+cat > "$PREFIXO/bin/revela-desligar" <<EOF
+#!$PREFIXO/bin/bash
+pkill -f "node server.js" 2>/dev/null
+pkill -f "cloudflared tunnel" 2>/dev/null
+command -v termux-notification-remove >/dev/null && termux-notification-remove revela
+command -v termux-wake-unlock >/dev/null && termux-wake-unlock
+command -v termux-toast >/dev/null && termux-toast "REVELA desligado"
+echo "REVELA desligado."
+EOF
+chmod +x "$PREFIXO/bin/revela-ligar" "$PREFIXO/bin/revela-endereco" "$PREFIXO/bin/revela-atualizar" "$PREFIXO/bin/revela-desligar"
+
+# Botões para a tela inicial (app Termux:Widget)
+mkdir -p "$HOME/.shortcuts"
+printf '#!%s/bin/bash\nrevela-ligar\nsleep 4\n' "$PREFIXO" > "$HOME/.shortcuts/REVELA ligar"
+printf '#!%s/bin/bash\nrevela-desligar\nsleep 2\n' "$PREFIXO" > "$HOME/.shortcuts/REVELA desligar"
+chmod +x "$HOME/.shortcuts/REVELA ligar" "$HOME/.shortcuts/REVELA desligar"
 
 # Liga sozinho quando o celular reinicia (precisa do app Termux:Boot aberto uma vez)
 cat > "$HOME/.termux/boot/revela" <<EOF
@@ -79,7 +103,11 @@ chmod +x "$HOME/.termux/boot/revela"
 say "Pronto!"
 cat <<'MSG'
 
+Botão na tela inicial: instale Termux:Widget e Termux:API (F-Droid),
+segure na tela inicial > Widgets > Termux:Widget > "REVELA ligar".
+
 Para ligar agora:   revela-ligar
+Desligar:           revela-desligar
 Ver o endereço:     revela-endereco
 Atualizar:          revela-atualizar
 
