@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1712">
+<meta name="description" content="Envie um vídeo ou cole um link e receba um link MP4 direto.">
+<title>REVELA — laboratório de vídeo</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/icone-192.png">
+<style>
+@font-face{font-family:'Big Shoulders Display';font-weight:700;font-display:swap;src:url(/fontes/big-shoulders-display-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Big Shoulders Display';font-weight:900;font-display:swap;src:url(/fontes/big-shoulders-display-latin-900-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:400;font-display:swap;src:url(/fontes/ibm-plex-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:500;font-display:swap;src:url(/fontes/ibm-plex-mono-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-weight:700;font-display:swap;src:url(/fontes/ibm-plex-mono-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Fraunces';font-style:italic;font-weight:400;font-display:swap;src:url(/fontes/fraunces-latin-400-italic.woff2) format('woff2')}
+:root{
+  --papel:#ece2cc; --papel2:#e3d6ba; --cartao:#f6efdd; --branco:#fffaf0;
+  --tinta:#1b1712; --tinta2:#4a4236; --apagado:#8a7e68;
+  --luz:#d0281b; --ambar:#e59a1d; --verde:#2f6b3a;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --disp:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --serif:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--tinta);overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--mono);color:var(--tinta);min-height:100vh;overflow-x:hidden;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),var(--papel);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--ambar);outline-offset:2px}
+
+/* ---------- Película (cabeçalho) ---------- */
+.pelicula{background:var(--tinta);color:var(--papel);position:relative;padding:calc(26px + env(safe-area-inset-top)) 18px 22px}
+.pelicula::before,.pelicula::after{content:"";position:absolute;left:0;right:0;height:10px;background:repeating-linear-gradient(90deg,transparent 0 6px,var(--papel) 6px 16px,transparent 16px 22px);opacity:.9}
+.pelicula::before{top:calc(6px + env(safe-area-inset-top))}
+.pelicula::after{bottom:6px}
+.marca{display:flex;align-items:flex-end;gap:10px;max-width:780px;margin:0 auto;min-width:0}
+.marca h1{font:900 clamp(60px,17vw,118px)/.78 var(--disp);letter-spacing:-.01em}
+.marca h1 span{color:var(--luz)}
+.marca small{min-width:0;font-size:10px;line-height:1.4;text-transform:uppercase;letter-spacing:.08em;color:#b9ad93;padding-bottom:4px}
+.marca small b{color:var(--ambar);font-weight:500}
+.painel-luz{max-width:780px;margin:16px auto 0;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:11px;letter-spacing:.04em;color:#b9ad93;border-top:1px solid #3a3228;padding-top:10px}
+.painel-luz b{color:var(--papel);font-weight:500}
+.lamp{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d6252;margin-right:6px;vertical-align:1px}
+.lamp.on{background:#5fbf62;box-shadow:0 0 8px 2px rgba(95,191,98,.55)}
+.lamp.off{background:var(--luz);box-shadow:0 0 8px 2px rgba(208,40,27,.7);animation:pisca 1.2s infinite}
+.lamp.aviso{background:var(--ambar);box-shadow:0 0 8px 2px rgba(229,154,29,.6)}
+@keyframes pisca{50%{opacity:.4}}
+
+main{max-width:780px;margin:0 auto;padding:22px 16px 30px}
+
+/* ---------- Guias ---------- */
+.guias{display:flex;margin-bottom:-2px;position:relative;z-index:2}
+.guia{flex:1;font:700 15px var(--disp);letter-spacing:.06em;text-transform:uppercase;padding:11px 10px 9px;border:2px solid var(--tinta);border-bottom:none;background:var(--papel2);color:var(--tinta2);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 100%,0 100%)}
+.guia+.guia{margin-left:-8px}
+.guia[aria-selected=true]{background:var(--cartao);color:var(--tinta);font-size:17px}
+.guia .n{font:500 10px var(--mono);display:block;letter-spacing:.1em;color:var(--luz)}
+
+/* ---------- Envelope ---------- */
+.envelope{background:var(--cartao);border:2px solid var(--tinta);position:relative;padding:20px 16px 20px;box-shadow:6px 6px 0 var(--tinta)}
+.carimbo{position:absolute;right:12px;top:12px;transform:rotate(6deg);border:2px solid var(--luz);color:var(--luz);font:700 10.5px var(--mono);letter-spacing:.1em;padding:3px 7px;opacity:.8;text-transform:uppercase;background:var(--cartao)}
+.rotulo{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--tinta2);display:block;margin-bottom:8px}
+.painel[hidden]{display:none}
+.soltar{display:block;border:2px dashed var(--tinta2);padding:28px 14px;text-align:center;cursor:pointer;background:repeating-linear-gradient(-45deg,transparent 0 10px,rgba(27,23,18,.035) 10px 20px);transition:background .2s,border-color .2s}
+.soltar.sobre{border-color:var(--luz);background:rgba(208,40,27,.07)}
+.soltar .grande{font:900 34px/1 var(--disp);text-transform:uppercase;display:block;margin:8px 0 6px}
+.soltar p{font-size:12.5px;color:var(--tinta2);line-height:1.5}
+.rolo{width:54px;height:54px;margin:0 auto;display:block}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.verdade{margin-top:12px;font-size:11.5px;line-height:1.6;color:var(--tinta2)}
+.verdade b{color:var(--tinta);font-weight:500}
+textarea{width:100%;min-height:96px;resize:vertical;border:2px solid var(--tinta);background:var(--branco);font:500 14px/1.5 var(--mono);padding:12px;outline:none}
+textarea::placeholder{color:#9b8f78}
+.linha-btn{display:flex;gap:8px;margin-top:10px}
+.btn{font:900 17px var(--disp);letter-spacing:.08em;text-transform:uppercase;border:2px solid var(--tinta);background:var(--tinta);color:var(--papel);padding:0 18px;min-height:50px}
+.btn.claro{background:transparent;color:var(--tinta)}
+.btn.luz{background:var(--luz);border-color:var(--luz);color:#fff;flex:1}
+.btn:active{transform:translate(1px,1px)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* ---------- Mesa de trabalho ---------- */
+.secao{margin-top:40px}
+.secao h2{font:900 30px var(--disp);text-transform:uppercase;display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--tinta);padding-bottom:4px}
+.secao h2 small{font:400 11px var(--mono);letter-spacing:.1em;color:var(--tinta2);text-transform:none}
+.secao h2 .acao{margin-left:auto;font:500 11px var(--mono);background:none;border:0;text-decoration:underline;color:var(--tinta2)}
+.vazio{font-size:12.5px;color:var(--tinta2);padding:14px 0;line-height:1.6}
+.ordens{list-style:none}
+.ordem{border-bottom:1px dashed #b3a68b;padding:14px 0}
+.ordem .cab{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}
+.ordem .num{font:900 24px/1 var(--disp);color:var(--luz);min-width:34px}
+.ordem .t{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ordem .m{font-size:11.5px;color:var(--tinta2);margin-top:3px;line-height:1.45;word-break:break-word}
+.ordem .pct{font:900 22px/1 var(--disp);color:var(--tinta)}
+.ordem.erro .m{color:var(--luz)}
+.ordem.erro .pct{color:var(--luz)}
+.tira{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:10px 0 0 46px;padding:4px 0;background:repeating-linear-gradient(90deg,var(--tinta) 0 4px,transparent 4px 8px) top/100% 2px no-repeat,repeating-linear-gradient(90deg,var(--tinta) 0 4px,transparent 4px 8px) bottom/100% 2px no-repeat}
+.tira i{height:12px;background:#d4c7aa;transition:background .4s}
+.tira i.on{background:linear-gradient(135deg,#f1c56b,#c8261c)}
+.tira i.agora{background:var(--luz);animation:pisca 1s infinite}
+.acoes{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0 46px}
+.acoes button,.acoes a,.acoes label{font:700 13px var(--disp);letter-spacing:.07em;text-transform:uppercase;text-decoration:none;text-align:center;border:2px solid var(--tinta);background:transparent;color:var(--tinta);padding:8px 11px;cursor:pointer}
+.acoes .forte{background:var(--tinta);color:var(--papel)}
+.acoes .perigo{border-color:var(--luz);color:var(--luz)}
+
+/* ---------- Ticket (pronto) ---------- */
+.ticket{margin:12px 0 0 46px;background:var(--branco);border:2px solid var(--tinta);box-shadow:4px 4px 0 var(--luz)}
+.ticket .link{display:flex;border-bottom:2px solid var(--tinta)}
+.ticket .link input{flex:1;min-width:0;border:0;font:500 12.5px var(--mono);padding:11px 10px;background:var(--papel2);color:var(--tinta)}
+.ticket .link button{font:900 15px var(--disp);letter-spacing:.08em;text-transform:uppercase;border:0;border-left:2px solid var(--tinta);background:var(--tinta);color:var(--papel);padding:0 14px}
+.ticket .botoes{display:grid;grid-template-columns:repeat(4,1fr)}
+.ticket .botoes>*{font:700 13px var(--disp);letter-spacing:.07em;text-transform:uppercase;text-align:center;text-decoration:none;border:0;border-right:2px solid var(--tinta);background:transparent;color:var(--tinta);padding:11px 2px}
+.ticket .botoes>*:last-child{border-right:0}
+.ticket video[hidden]{display:none}
+.ticket video{display:block;width:100%;max-height:62vh;background:#000;border-bottom:2px solid var(--tinta)}
+.ticket .aviso-tk{font-size:11.5px;color:#8a4a00;background:#fbe9c4;padding:8px 10px;border-bottom:2px solid var(--tinta)}
+.ticket .furos{height:12px;background:radial-gradient(circle at 6px 6px,var(--branco) 3.5px,transparent 4px) 0 0/16px 12px repeat-x,var(--tinta)}
+
+/* ---------- Ajustes ---------- */
+details.ajustes{margin-top:40px;border:2px solid var(--tinta);background:var(--cartao)}
+details.ajustes summary{font:900 20px var(--disp);text-transform:uppercase;letter-spacing:.04em;padding:12px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+details.ajustes summary::after{content:"+";font-size:26px;line-height:.8}
+details.ajustes[open] summary::after{content:"–"}
+details.ajustes .corpo{padding:0 14px 16px;font-size:12.5px;line-height:1.6;color:var(--tinta2)}
+details.ajustes h3{font:900 17px var(--disp);text-transform:uppercase;color:var(--tinta);margin:14px 0 4px;letter-spacing:.04em}
+details.ajustes .acoes{margin-left:0}
+.ferr{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12px}
+.ferr dt{color:var(--tinta2)} .ferr dd{color:var(--tinta)}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,160%);visibility:hidden;background:var(--tinta);color:var(--papel);font-size:13px;padding:12px 16px;border-left:5px solid var(--ambar);transition:transform .25s,visibility .25s;max-width:92vw;z-index:9}
+.toast.ver{transform:translate(-50%,0);visibility:visible}
+footer{max-width:780px;margin:0 auto;padding:10px 16px 40px;font-size:11px;color:var(--tinta2);line-height:1.6}
+@media (min-width:640px){.envelope{padding:26px 26px 26px}.soltar{padding:40px 20px}}
+@media (max-width:380px){.ticket .botoes{grid-template-columns:repeat(2,1fr)}.ticket .botoes>*:nth-child(2){border-right:0}.ticket .botoes>*:nth-child(-n+2){border-bottom:2px solid var(--tinta)}.tira,.acoes,.ticket{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="pelicula">
+  <div class="marca">
+    <h1>REVEL<span>A</span></h1>
+    <small>laboratório de vídeo<br>arquivo ou link<br><b>vira link MP4 direto</b></small>
+  </div>
+  <div class="painel-luz" id="painelLuz" aria-live="polite">
+    <span><span class="lamp" id="lampServ"></span><b id="txtServ">Conectando…</b></span>
+    <span id="txtEspaco"></span>
+    <span id="txtLinks"></span>
+    <span id="txtFila"></span>
+  </div>
+</header>
+
+<main>
+  <div class="guias" role="tablist">
+    <button class="guia" role="tab" aria-selected="true" data-p="arquivo"><span class="n">ORDEM A</span>Enviar arquivos</button>
+    <button class="guia" role="tab" aria-selected="false" data-p="link"><span class="n">ORDEM B</span>Colar links</button>
+  </div>
+
+  <section class="envelope">
+    <div class="carimbo" id="carimbo">sem limite fixo</div>
+
+    <div class="painel" id="p-arquivo">
+      <span class="rotulo">Rolos para revelar</span>
+      <label class="soltar" id="soltar">
+        <svg class="rolo" viewBox="0 0 64 64" fill="none" stroke="#1b1712" stroke-width="3" aria-hidden="true">
+          <circle cx="24" cy="30" r="18"/><circle cx="24" cy="30" r="5"/>
+          <circle cx="24" cy="18" r="3.5"/><circle cx="35" cy="34" r="3.5"/><circle cx="13" cy="34" r="3.5"/>
+          <path d="M24 48h34v-9H40" stroke="#d0281b"/>
+        </svg>
+        <span class="grande">Escolher vídeos</span>
+        <p>Pode escolher vários de uma vez.<br>MP4, MOV, MKV, AVI, WEBM, 3GP, FLV, TS, WMV…</p>
+        <input type="file" id="arq" multiple accept="video/*,.mkv,.avi,.flv,.ts,.m2ts,.mts,.wmv,.mpg,.mpeg,.3gp,.webm,.mov,.vob,.ogv">
+      </label>
+      <p class="verdade" id="verdadeArq"><b>Tamanho:</b> não há limite fixo. O limite real é o espaço livre do servidor.<br>
+        <b>Se a internet cair</b>, o envio espera e continua sozinho de onde parou. Se fechar a página, é só escolher o mesmo arquivo de novo.</p>
+    </div>
+
+    <div class="painel" id="p-link" hidden>
+      <span class="rotulo">Links (um por linha)</span>
+      <textarea id="urls" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://youtu.be/…&#10;https://www.instagram.com/reel/…"></textarea>
+      <div class="linha-btn">
+        <button class="btn claro" id="btnColar" type="button">Colar</button>
+        <button class="btn luz" id="btnRevelar" type="button">Revelar</button>
+      </div>
+      <p class="verdade"><b>Funciona com</b> os sites suportados pelo yt-dlp: YouTube (vídeos e Shorts), Instagram, TikTok, X/Twitter, Facebook, Vimeo, Reddit, Twitch, Dailymotion, Kwai e mais de mil outros, além de links diretos <b>.mp4 .mkv .webm .mov .m3u8</b>.<br>
+        <b>Não funciona com:</b> vídeos privados, lives ainda no ar e conteúdo pago ou com DRM (Netflix, Disney+, Prime…).</p>
+    </div>
+  </section>
+
+  <section class="secao" id="secMesa" hidden>
+    <h2>Mesa de trabalho <small id="mesaResumo"></small></h2>
+    <ul class="ordens" id="mesa"></ul>
+  </section>
+
+  <section class="secao">
+    <h2>Arquivo de negativos <small>neste aparelho</small><button class="acao" id="limparLista" hidden>limpar lista</button></h2>
+    <ul class="ordens" id="arquivo"></ul>
+  </section>
+
+  <details class="ajustes" id="ajustes">
+    <summary>Ajustes e ajuda</summary>
+    <div class="corpo">
+      <h3>YouTube pediu login?</h3>
+      <p>Às vezes o YouTube bloqueia servidores e pede pra "confirmar que não é um robô". Pra resolver, envie um <b>cookies.txt</b> de uma conta logada. No PC, instale a extensão "Get cookies.txt LOCALLY", abra o youtube.com logado, exporte e envie aqui. Use uma conta secundária.</p>
+      <div class="acoes">
+        <label class="forte" for="arqCookies">Enviar cookies.txt</label>
+        <button class="perigo" id="tirarCookies" hidden>Remover cookies</button>
+      </div>
+      <input type="file" id="arqCookies" accept=".txt,text/plain">
+      <p id="estadoCookies" style="margin-top:8px"></p>
+
+      <h3>No celular</h3>
+      <p>Instale o REVELA como app: ele aparece no menu <b>Compartilhar</b> do YouTube, Instagram e TikTok. Compartilhou, ele já começa a revelar.</p>
+      <div class="acoes"><button class="forte" id="btnInstalar" hidden>Instalar app</button></div>
+      <p id="dicaInstalar"></p>
+
+      <h3>Como usar o link</h3>
+      <p>O link termina em <b>.mp4</b> e é o arquivo de verdade: cole em player de site, VLC, bot, editor ou tag &lt;video&gt;. Ele aceita pular para qualquer ponto (Range) e libera acesso de outros sites (CORS). Para forçar download, adicione <b>?baixar</b> no fim.</p>
+
+      <h3>Servidor</h3>
+      <dl class="ferr" id="ferr"></dl>
+    </div>
+  </details>
+</main>
+
+<footer>Os vídeos ficam guardados no servidor onde o REVELA está instalado. Use com vídeos seus ou que você tem direito de baixar.</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const dorme = ms => new Promise(r => setTimeout(r, ms));
+const fmtBytes = b => { if (b == null || !isFinite(b)) return '—'; const u=['B','KB','MB','GB','TB']; let i=0; while (b>=1024&&i<4){b/=1024;i++} return (i?b.toFixed(b<10?2:1):b)+' '+u[i]; };
+const fmtTempo = s => { s=Math.max(0,Math.round(s)); const h=s/3600|0,m=(s%3600)/60|0,x=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); };
+function toast(t){ const a=$('#toast'); a.textContent=t; a.classList.add('ver'); clearTimeout(a._t); a._t=setTimeout(()=>a.classList.remove('ver'),3600); }
+const LS = {
+  ler(k, pad){ try { const v = localStorage.getItem('revela.'+k); return v ? JSON.parse(v) : pad; } catch { return pad; } },
+  gravar(k, v){ try { localStorage.setItem('revela.'+k, JSON.stringify(v)); } catch {} },
+};
+async function api(caminho, op = {}) {
+  const r = await fetch(caminho, { method: op.method || 'GET', headers: { ...(op.json ? { 'content-type':'application/json' } : {}), ...(op.headers || {}) }, body: op.json ? JSON.stringify(op.json) : op.body, signal: op.signal });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(d.erro || ('O servidor respondeu ' + r.status)); e.status = r.status; e.dados = d; throw e; }
+  return d;
+}
+
+/* ================= Estado do servidor ================= */
+let status = null, online = true;
+async function atualizarStatus() {
+  try {
+    status = await api('/api/status'); online = true;
+    $('#lampServ').className = 'lamp on'; $('#txtServ').textContent = 'Laboratório online';
+    if (status.livreBytes != null) {
+      $('#txtEspaco').innerHTML = '<b>' + fmtBytes(status.livreBytes) + '</b> livres';
+      $('#carimbo').textContent = 'até ' + fmtBytes(status.livreBytes);
+    }
+    const f = status.ferramentas || {};
+    $('#txtLinks').innerHTML = f.ytdlp ? 'Links: <b>prontos</b>' : 'Links: <b style="color:#ff8a7a">yt-dlp ausente</b>';
+    const q = status.fila || {}; const n = (q.convertendo||0)+(q.baixando||0)+(q.esperando||0);
+    $('#txtFila').innerHTML = n ? 'Fila: <b>' + n + '</b>' : 'Fila: <b>livre</b>';
+    $('#ferr').innerHTML = '';
+    [['FFmpeg', f.ffmpeg || 'AUSENTE — conversão não funciona'], ['yt-dlp', f.ytdlp || 'AUSENTE — links não funcionam'], ['Node', f.node], ['Espaço livre', fmtBytes(status.livreBytes)], ['Apagar vídeos após', status.diasExpirar ? status.diasExpirar + ' dias' : 'nunca']]
+      .forEach(([k, v]) => { $('#ferr').append(el('dt', null, k), el('dd', null, v)); });
+    $('#estadoCookies').textContent = status.cookies ? 'Cookies do YouTube: enviados ✔' : 'Cookies do YouTube: nenhum.';
+    $('#tirarCookies').hidden = !status.cookies;
+  } catch {
+    online = false;
+    $('#lampServ').className = 'lamp off'; $('#txtServ').textContent = 'Servidor fora do ar — tentando reconectar';
+  }
+}
+
+/* ================= Abas ================= */
+document.querySelectorAll('.guia').forEach(g => g.onclick = () => {
+  document.querySelectorAll('.guia').forEach(x => x.setAttribute('aria-selected', x === g));
+  $('#p-arquivo').hidden = g.dataset.p !== 'arquivo';
+  $('#p-link').hidden = g.dataset.p !== 'link';
+});
+
+/* ================= Mesa de trabalho ================= */
+// cada item: {k, tipo:'upload'|'link', titulo, estado, progresso, etapa, detalhe, job, chaveApagar, upId, chave, size, video, erro}
+let mesa = LS.ler('mesa', []);
+const arquivos = new Map(); // k -> File (só em memória)
+const salvarMesa = () => LS.gravar('mesa', mesa.map(({ _ab, ...x }) => x));
+let contador = LS.ler('contador', 0);
+const novoNum = () => { contador++; LS.gravar('contador', contador); return contador; };
+
+// redesenha só o que mudou (assim um vídeo tocando não é interrompido)
+const cacheLi = new Map();
+const assinatura = it => [it.estado, it.etapa, it.detalhe, Math.floor(it.progresso || 0), it.erro, it.video && it.video.slug, !!arquivos.get(it.k)].join('|');
+function desenharMesa() {
+  const ul = $('#mesa');
+  $('#secMesa').hidden = !mesa.length;
+  const ativos = mesa.filter(i => !['pronto','erro','cancelado'].includes(i.estado)).length;
+  $('#mesaResumo').textContent = ativos ? ativos + ' em andamento' : '';
+  const vivos = new Set();
+  mesa.forEach((it, idx) => {
+    vivos.add(it.k);
+    const sig = assinatura(it); let c = cacheLi.get(it.k);
+    if (!c || c.sig !== sig) { const li = desenharOrdem(it, true); if (c) c.li.replaceWith(li); c = { sig, li }; cacheLi.set(it.k, c); }
+    if (ul.children[idx] !== c.li) ul.insertBefore(c.li, ul.children[idx] || null);
+  });
+  for (const [k, c] of cacheLi) if (!vivos.has(k)) { c.li.remove(); cacheLi.delete(k); }
+}
+function tira(pct, ativo) {
+  const d = el('div', 'tira'); const on = Math.floor(pct / 5);
+  for (let i = 0; i < 20; i++) d.append(el('i', i < on ? 'on' : (i === on && ativo ? 'agora' : '')));
+  return d;
+}
+function desenharOrdem(it, naMesa) {
+  const li = el('li', 'ordem' + (it.estado === 'erro' ? ' erro' : ''));
+  const cab = el('div', 'cab');
+  cab.append(el('span', 'num', String(it.num || '').padStart(2, '0')));
+  const meio = el('div'); meio.style.minWidth = '0';
+  meio.append(el('div', 't', (it.video && it.video.titulo) || it.titulo));
+  const m = el('div', 'm');
+  if (it.estado === 'pronto' && it.video) {
+    const v = it.video;
+    m.textContent = [fmtBytes(v.bytes), v.duracao ? fmtTempo(v.duracao) : '', v.largura ? v.largura + '×' + v.altura : '', v.recodificado ? 'convertido H.264' : 'qualidade original', new Date(v.criado).toLocaleDateString('pt-BR')].filter(Boolean).join(' · ');
+  } else if (it.estado === 'erro') m.textContent = it.erro || 'Falhou';
+  else m.textContent = [it.etapa, it.detalhe].filter(Boolean).join(' — ');
+  meio.append(m); cab.append(meio);
+  const ativo = !['pronto','erro','cancelado','pausado','precisa-arquivo'].includes(it.estado);
+  if (naMesa && it.estado !== 'pronto') cab.append(el('span', 'pct', it.estado === 'erro' ? '✕' : Math.floor(it.progresso || 0) + '%'));
+  li.append(cab);
+  if (naMesa && it.estado !== 'pronto' && it.estado !== 'erro') li.append(tira(it.progresso || 0, ativo));
+
+  const ac = el('div', 'acoes');
+  if (it.estado === 'pronto' && it.video && naMesa) li.append(ticket(it));
+  if (naMesa) {
+    if (it.tipo === 'upload' && it.estado === 'enviando') ac.append(botao('Pausar', () => pausarUpload(it)));
+    if (it.tipo === 'upload' && it.estado === 'pausado') ac.append(botao('Continuar', () => iniciarUpload(it), 'forte'));
+    if (it.estado === 'precisa-arquivo') {
+      const lab = el('label', 'forte', 'Escolher o arquivo de novo');
+      const inp = el('input'); inp.type = 'file'; inp.accept = 'video/*';
+      inp.onchange = () => { const f = inp.files[0]; if (!f) return; if (chaveDe(f) !== it.chave) return toast('Esse não é o mesmo arquivo (' + it.titulo + ', ' + fmtBytes(it.size) + ').'); arquivos.set(it.k, f); iniciarUpload(it); };
+      lab.append(inp); ac.append(lab);
+    }
+    if (it.estado === 'erro' && it.tipo === 'link') ac.append(botao('Tentar de novo', () => { removerDaMesa(it); enviarLinks([it.url]); }, 'forte'));
+    if (it.estado === 'erro' && it.tipo === 'upload' && arquivos.get(it.k) && !/não é um vídeo|só tem áudio|não tem trilha|incompleto/.test(it.erro || '')) ac.append(botao('Tentar de novo', () => { const f = arquivos.get(it.k); removerDaMesa(it); adicionarArquivos([f]); }, 'forte'));
+    if (ativo || it.estado === 'pausado' || it.estado === 'precisa-arquivo') ac.append(botao('Cancelar', () => cancelar(it), 'perigo'));
+    if (['erro','cancelado','pronto'].includes(it.estado)) ac.append(botao(it.estado === 'pronto' ? 'Tirar da mesa' : 'Remover', () => removerDaMesa(it)));
+  } else {
+    const ver = botao('Ver link', () => { const tk = li.querySelector('.ticket'); if (tk) { tk.remove(); ver.textContent = 'Ver link'; } else { li.insertBefore(ticket(it), ac); ver.textContent = 'Fechar'; } }, 'forte');
+    ac.append(ver, botao('Copiar link', () => copiar(it.video.url || location.origin + '/v/' + it.video.slug + '.mp4')));
+    ac.append(botao('Apagar do servidor', () => apagarVideo(it), 'perigo'));
+    ac.append(botao('Tirar da lista', () => { historico = historico.filter(x => x.video.slug !== it.video.slug); LS.gravar('historico', historico); desenharArquivo(); }));
+  }
+  if (ac.children.length) li.append(ac);
+  return li;
+}
+function botao(txt, fn, cls) { const b = el('button', cls || '', txt); b.type = 'button'; b.onclick = fn; return b; }
+function ticket(it) {
+  const v = it.video, url = v.url || (location.origin + '/v/' + v.slug + '.mp4');
+  const t = el('div', 'ticket');
+  if (v.aviso) t.append(el('div', 'aviso-tk', '⚠ ' + v.aviso));
+  const vid = el('video'); vid.controls = true; vid.preload = 'none'; vid.playsInline = true; vid.hidden = true;
+  const linha = el('div', 'link'); const inp = el('input'); inp.readOnly = true; inp.value = url; inp.onclick = () => inp.select();
+  linha.append(inp, botao('Copiar', () => copiar(url)));
+  const bt = el('div', 'botoes');
+  bt.append(botao('Assistir', () => { vid.hidden = !vid.hidden; if (!vid.hidden) { if (!vid.src) vid.src = url; vid.play().catch(() => {}); } else vid.pause(); }));
+  const ab = el('a', null, 'Abrir'); ab.href = url; ab.target = '_blank'; ab.rel = 'noopener';
+  const bx = el('a', null, 'Baixar'); bx.href = url + '?baixar';
+  bt.append(ab, bx, botao('Enviar', async () => { if (navigator.share) { try { await navigator.share({ title: v.titulo || 'Vídeo', url }); } catch {} } else copiar(url); }));
+  t.append(vid, linha, bt, el('div', 'furos'));
+  return t;
+}
+async function copiar(txt) {
+  try { await navigator.clipboard.writeText(txt); }
+  catch { const ta = el('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  toast('Link copiado');
+}
+function removerDaMesa(it) { mesa = mesa.filter(x => x !== it); arquivos.delete(it.k); salvarMesa(); desenharMesa(); }
+function mudar(it, campos) { Object.assign(it, campos); salvarMesa(); agendarDesenho(); }
+let desenhoPendente = false;
+function agendarDesenho() { if (desenhoPendente) return; desenhoPendente = true; requestAnimationFrame(() => { desenhoPendente = false; desenharMesa(); }); }
+
+/* ================= Histórico ================= */
+let historico = LS.ler('historico', []);
+function guardarNoHistorico(it) {
+  historico = historico.filter(x => x.video.slug !== it.video.slug);
+  historico.unshift({ num: it.num, titulo: it.titulo, video: it.video, chaveApagar: it.chaveApagar, estado: 'pronto' });
+  LS.gravar('historico', historico.slice(0, 200)); desenharArquivo();
+}
+function desenharArquivo() {
+  const ul = $('#arquivo'); ul.innerHTML = '';
+  $('#limparLista').hidden = !historico.length;
+  if (!historico.length) { ul.append(el('li', 'vazio', 'Nada revelado ainda. Seus links prontos ficam guardados aqui.')); return; }
+  historico.forEach(it => ul.append(desenharOrdem(it, false)));
+}
+$('#limparLista').onclick = () => { if (confirm('Tirar todos da lista deste aparelho? (os vídeos continuam no servidor)')) { historico = []; LS.gravar('historico', historico); desenharArquivo(); } };
+async function apagarVideo(it) {
+  if (!confirm('Apagar este vídeo do servidor? O link vai parar de funcionar para todo mundo.')) return;
+  try {
+    await api('/api/video/' + it.video.slug, { method: 'DELETE', headers: { 'x-chave': it.chaveApagar || '' } });
+    historico = historico.filter(x => x.video.slug !== it.video.slug); LS.gravar('historico', historico); desenharArquivo();
+    mesa = mesa.filter(x => !(x.video && x.video.slug === it.video.slug)); salvarMesa(); desenharMesa();
+    toast('Vídeo apagado');
+  } catch (e) { toast(e.message); }
+}
+
+/* ================= Envio de arquivos ================= */
+const chaveDe = f => f.name + '|' + f.size + '|' + f.lastModified;
+const soltar = $('#soltar');
+['dragenter','dragover'].forEach(e => soltar.addEventListener(e, ev => { ev.preventDefault(); soltar.classList.add('sobre'); }));
+['dragleave','drop'].forEach(e => soltar.addEventListener(e, ev => { ev.preventDefault(); soltar.classList.remove('sobre'); }));
+soltar.addEventListener('drop', ev => adicionarArquivos([...ev.dataTransfer.files]));
+$('#arq').onchange = e => { adicionarArquivos([...e.target.files]); e.target.value = ''; };
+
+function adicionarArquivos(files) {
+  for (const f of files) {
+    if (!f.size) { toast(f.name + ' está vazio.'); continue; }
+    // mesmo arquivo pausado ou esperando? retoma em vez de duplicar
+    const exist = mesa.find(i => i.tipo === 'upload' && i.chave === chaveDe(f) && ['pausado','precisa-arquivo','erro','enviando','na fila'].includes(i.estado));
+    if (exist) { arquivos.set(exist.k, f); if (exist.estado !== 'enviando') { exist.estado = 'na fila'; filaUpload.push(exist); } continue; }
+    const it = { k: Math.random().toString(36).slice(2), num: novoNum(), tipo: 'upload', titulo: f.name, chave: chaveDe(f), size: f.size, estado: 'na fila', etapa: 'Esperando a vez de enviar', progresso: 0 };
+    arquivos.set(it.k, f); mesa.unshift(it); filaUpload.push(it);
+  }
+  salvarMesa(); desenharMesa(); rodarUploads();
+  $('#secMesa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+const filaUpload = [];
+let enviandoAgora = false;
+async function rodarUploads() {
+  if (enviandoAgora) return;
+  enviandoAgora = true;
+  try { while (filaUpload.length) { const it = filaUpload.shift(); if (mesa.includes(it) && it.estado === 'na fila') await enviarArquivo(it); } }
+  finally { enviandoAgora = false; }
+}
+function iniciarUpload(it) { it.estado = 'na fila'; it.etapa = 'Esperando a vez de enviar'; filaUpload.push(it); salvarMesa(); desenharMesa(); rodarUploads(); }
+function pausarUpload(it) { it._pausar = true; it._ab && it._ab.abort(); }
+
+const temSHA = !!(window.crypto && crypto.subtle);
+async function sha256Hex(buf) { const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+
+async function enviarArquivo(it) {
+  const file = arquivos.get(it.k);
+  if (!file) return mudar(it, { estado: 'precisa-arquivo', etapa: 'A página foi recarregada: escolha o arquivo de novo para continuar', detalhe: '' });
+  it._pausar = false;
+  let wake = null; try { wake = await navigator.wakeLock?.request('screen'); } catch {}
+  try {
+    mudar(it, { estado: 'enviando', etapa: 'Conectando', detalhe: '' });
+    let s = await comRetentativa(it, () => api('/api/upload', { method: 'POST', json: { name: file.name, size: file.size, chave: it.chave } }));
+    it.upId = s.id; salvarMesa();
+    const recebidos = new Set(s.recebidos);
+    if (recebidos.size) toast('Continuando "' + file.name + '" de ' + Math.round(recebidos.size / s.total * 100) + '%');
+    const falta = []; for (let i = 0; i < s.total; i++) if (!recebidos.has(i)) falta.push(i);
+    let enviados = recebidos.size * s.chunk, base = enviados;
+    const t0 = performance.now();
+    const PARALELO = 3;
+    const trabalhador = async () => {
+      while (falta.length && !it._pausar) {
+        const n = falta.shift();
+        const ini = n * s.chunk, fim = Math.min(ini + s.chunk, file.size);
+        const pedaco = file.slice(ini, fim);
+        await comRetentativa(it, async () => {
+          const buf = await pedaco.arrayBuffer();
+          const h = { 'content-type': 'application/octet-stream' };
+          if (temSHA) h['x-sha256'] = await sha256Hex(buf);
+          it._ab = new AbortController();
+          await api('/api/upload/' + s.id + '/' + n, { method: 'PUT', body: buf, headers: h, signal: it._ab.signal });
+        });
+        if (it._pausar) { falta.unshift(n); return; }
+        enviados += fim - ini;
+        const seg = (performance.now() - t0) / 1000, vel = (enviados - base) / Math.max(seg, .5);
+        mudar(it, { etapa: 'Enviando', progresso: Math.min(99.9, enviados / file.size * 100), detalhe: fmtBytes(enviados) + ' de ' + fmtBytes(file.size) + ' · ' + fmtBytes(vel) + '/s · falta ' + fmtTempo((file.size - enviados) / Math.max(vel, 1)) });
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(PARALELO, falta.length || 1) }, trabalhador));
+    if (it._pausar) return mudar(it, { estado: 'pausado', etapa: 'Pausado', detalhe: fmtBytes(enviados) + ' de ' + fmtBytes(file.size) });
+    mudar(it, { etapa: 'Finalizando envio', detalhe: '' });
+    const r = await comRetentativa(it, () => api('/api/upload/' + s.id + '/fim', { method: 'POST' }));
+    mudar(it, { estado: 'na fila', job: r.job, chaveApagar: r.chaveApagar, etapa: 'Enviado — na fila do laboratório', progresso: 0 });
+    acompanhar();
+  } catch (e) {
+    if (it._pausar) return mudar(it, { estado: 'pausado', etapa: 'Pausado', detalhe: '' });
+    mudar(it, { estado: 'erro', erro: e.message });
+  } finally { try { wake && wake.release(); } catch {} }
+}
+// tenta de novo sem desistir enquanto o problema for de rede/servidor; desiste em erros definitivos
+async function comRetentativa(it, fn) {
+  let tentativa = 0;
+  while (true) {
+    try { return await fn(); }
+    catch (e) {
+      if (it._pausar) throw e;
+      if (e.status && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429 && e.status !== 422) throw e;
+      if (e.status === 507) throw e;
+      tentativa++;
+      const espera = Math.min(30, 2 ** Math.min(tentativa, 5));
+      mudar(it, { etapa: navigator.onLine ? 'Conexão falhou — tentando de novo em ' + espera + 's' : 'Sem internet — continua sozinho quando voltar', detalhe: '' });
+      await esperarRede(espera * 1000);
+      mudar(it, { etapa: 'Enviando' });
+    }
+  }
+}
+function esperarRede(ms) {
+  return new Promise(r => { const t = setTimeout(fim, ms); function fim() { clearTimeout(t); window.removeEventListener('online', fim); r(); } window.addEventListener('online', fim); });
+}
+
+/* ================= Links ================= */
+const extrairLinks = txt => [...new Set((String(txt || '').match(/https?:\/\/[^\s<>"']+/gi) || []).map(u => u.replace(/[),.;!?]+$/, '')))];
+$('#btnColar').onclick = async () => {
+  try { const t = await navigator.clipboard.readText(); $('#urls').value = ($('#urls').value ? $('#urls').value.trim() + '\n' : '') + t.trim(); }
+  catch { toast('O navegador não deixou colar automaticamente. Segure no campo e cole.'); $('#urls').focus(); }
+};
+$('#btnRevelar').onclick = () => {
+  const links = extrairLinks($('#urls').value);
+  if (!links.length) { toast('Cole pelo menos um link começando com http'); return $('#urls').focus(); }
+  enviarLinks(links); $('#urls').value = '';
+};
+async function enviarLinks(links) {
+  for (const url of links) {
+    const it = { k: Math.random().toString(36).slice(2), num: novoNum(), tipo: 'link', titulo: url, url, estado: 'na fila', etapa: 'Enviando o pedido', progresso: 0 };
+    mesa.unshift(it); salvarMesa(); desenharMesa();
+    try { const r = await api('/api/link', { method: 'POST', json: { url } }); mudar(it, { job: r.job, chaveApagar: r.chaveApagar, etapa: 'Na fila do laboratório' }); }
+    catch (e) { mudar(it, { estado: 'erro', erro: e.message }); }
+  }
+  $('#secMesa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  acompanhar();
+}
+
+/* ================= Acompanhar trabalhos no servidor ================= */
+let acompanhando = false;
+async function acompanhar() {
+  if (acompanhando) return; acompanhando = true;
+  try {
+    while (true) {
+      const abertos = mesa.filter(i => i.job && !['pronto','erro','cancelado'].includes(i.estado));
+      if (!abertos.length) break;
+      try {
+        const res = await api('/api/jobs', { method: 'POST', json: { ids: abertos.map(i => i.job) } });
+        for (const j of res) {
+          const it = abertos.find(i => i.job === j.id); if (!it) continue;
+          if (j.estado === 'sumiu') { mudar(it, { estado: 'erro', erro: 'O servidor não conhece mais esse trabalho.' }); continue; }
+          const etapa = j.estado === 'na fila' && j.posicao ? 'Na fila — posição ' + j.posicao : j.etapa;
+          mudar(it, { estado: j.estado, etapa, detalhe: j.detalhe || '', progresso: j.progresso, titulo: j.titulo || it.titulo, erro: j.erro, video: j.video || it.video });
+          if (j.estado === 'pronto') { guardarNoHistorico(it); toast('Pronto: ' + (j.video.titulo || 'vídeo')); vibrar(); }
+        }
+      } catch {}
+      await dorme(document.hidden ? 5000 : 1500);
+    }
+  } finally { acompanhando = false; }
+}
+const vibrar = () => { try { navigator.vibrate && navigator.vibrate(80); } catch {} };
+async function cancelar(it) {
+  it._pausar = true; it._ab && it._ab.abort();
+  if (it.job) { try { await api('/api/job/' + it.job, { method: 'DELETE', headers: { 'x-chave': it.chaveApagar || '' } }); } catch {} }
+  else if (it.upId) { try { await api('/api/upload/' + it.upId, { method: 'DELETE' }); } catch {} }
+  mudar(it, { estado: 'cancelado', etapa: 'Cancelado', detalhe: '' });
+}
+
+/* ================= Cookies ================= */
+$('#arqCookies').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { await api('/api/cookies', { method: 'PUT', body: await f.text(), headers: { 'content-type': 'text/plain' } }); toast('Cookies enviados'); atualizarStatus(); }
+  catch (er) { toast(er.message); }
+};
+$('#tirarCookies').onclick = async () => { await api('/api/cookies', { method: 'DELETE' }).catch(() => {}); toast('Cookies removidos'); atualizarStatus(); };
+
+/* ================= App instalável / compartilhar ================= */
+let pedidoInstalar = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); pedidoInstalar = e; $('#btnInstalar').hidden = false; });
+$('#btnInstalar').onclick = async () => { if (!pedidoInstalar) return; pedidoInstalar.prompt(); await pedidoInstalar.userChoice.catch(() => {}); pedidoInstalar = null; $('#btnInstalar').hidden = true; };
+if (!window.isSecureContext) $('#dicaInstalar').textContent = 'Para instalar como app, abra pelo endereço https (o link do túnel), não pelo IP da Wi-Fi.';
+if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+/* ================= Início ================= */
+(async () => {
+  // itens que estavam enviando quando a página fechou precisam do arquivo de novo
+  for (const it of mesa) {
+    if (it.tipo === 'upload' && !it.job && ['enviando','na fila','pausado'].includes(it.estado)) { it.estado = 'precisa-arquivo'; it.etapa = 'A página foi fechada: escolha o arquivo de novo para continuar de onde parou'; it.detalhe = ''; }
+  }
+  salvarMesa(); desenharMesa(); desenharArquivo();
+  await atualizarStatus();
+  setInterval(atualizarStatus, 15000);
+  window.addEventListener('online', atualizarStatus);
+  acompanhar();
+  // compartilhado de outro app (/?url=… ou /?text=…) ou link direto
+  const q = new URLSearchParams(location.search);
+  const vindos = extrairLinks([q.get('url'), q.get('text'), q.get('title')].filter(Boolean).join(' '));
+  if (vindos.length) { history.replaceState(null, '', '/'); document.querySelector('[data-p=link]').click(); enviarLinks(vindos); }
+})();
+</script>
+</body>
+</html>

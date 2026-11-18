@@ -1,0 +1,14 @@
+{
+  "name": "revela",
+  "version": "1.0.0",
+  "description": "Laborat\u00f3rio de v\u00eddeo: qualquer v\u00eddeo ou link vira MP4 direto",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}
