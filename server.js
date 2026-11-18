@@ -612,7 +612,9 @@ async function faxina() {
 
 // ---------------- Início ----------------
 function ipsLocais() {
-  return Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
+  // No Android (Termux) o Node pode falhar ao listar as redes; isso nunca pode derrubar o servidor
+  try { return Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address); }
+  catch { return []; }
 }
 async function iniciar() {
   await recuperar();

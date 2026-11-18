@@ -66,3 +66,15 @@ Qualquer VPS Ubuntu/Debian (x64 ou ARM): `curl -fsSL https://raw.githubuserconte
 | `RESERVA_GB` | `1` | Espaço que nunca é usado (protege o sistema) |
 
 Depois de mudar: `sudo systemctl restart revela`.
+
+
+## Opção celular Android (Termux)
+
+Sem VPS e sem cartão: um Android velho, no Wi-Fi e carregando, vira o servidor.
+
+1. Instale o **Termux pelo F-Droid** (não pela Play Store, que está desatualizada) e, se quiser ligar sozinho após reiniciar, o **Termux:Boot** (também F-Droid).
+2. No Termux: `pkg install -y curl && curl -fsSL https://raw.githubusercontent.com/danandxxy-ship-it/revela/main/servidor/termux.sh | bash`
+3. `revela-ligar` mostra o endereço público (`https://….trycloudflare.com`).
+4. Ajustes do Android > Apps > Termux > Bateria > Sem restrições.
+
+Limites honestos: o endereço do túnel grátis **muda quando o servidor reinicia** (links já gerados deixam de abrir), o armazenamento é o do celular, e os termos da Cloudflare restringem servir vídeo pela rede deles. Para links permanentes use VPS com domínio próprio.
