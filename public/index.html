@@ -264,7 +264,7 @@ async function atualizarStatus() {
     const q = status.fila || {}; const n = (q.convertendo||0)+(q.baixando||0)+(q.esperando||0);
     $('#txtFila').innerHTML = n ? 'Fila: <b>' + n + '</b>' : 'Fila: <b>livre</b>';
     $('#ferr').innerHTML = '';
-    [['FFmpeg', f.ffmpeg || 'AUSENTE — conversão não funciona'], ['yt-dlp', f.ytdlp || 'AUSENTE — links não funcionam'], ['Node', f.node], ['Espaço livre', fmtBytes(status.livreBytes)], ['Apagar vídeos após', status.diasExpirar ? status.diasExpirar + ' dias' : 'nunca']]
+    [['FFmpeg', f.ffmpeg || 'AUSENTE — conversão não funciona'], ['yt-dlp', f.ytdlp || 'AUSENTE — links não funcionam'], ['Conversão', f.conversao || '—'], ['Node', f.node], ['Espaço livre', fmtBytes(status.livreBytes)], ['Apagar vídeos após', status.diasExpirar ? status.diasExpirar + ' dias' : 'nunca']]
       .forEach(([k, v]) => { $('#ferr').append(el('dt', null, k), el('dd', null, v)); });
     $('#estadoCookies').textContent = status.cookies ? 'Cookies do YouTube: enviados ✔' : 'Cookies do YouTube: nenhum.';
     $('#tirarCookies').hidden = !status.cookies;

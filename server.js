@@ -19,6 +19,8 @@ const CFG = {
   maxLado: Number(process.env.MAX_LADO ?? 1920),            // maior lado ao recodificar (0 = mantém)
   crf: Number(process.env.CRF || 21),
   preset: process.env.PRESET || 'veryfast',
+  // auto = testa o chip de vídeo do aparelho (Android/NVIDIA/Intel/Mac) e usa se funcionar; libx264 = só processador
+  encoder: process.env.ENCODER || 'auto',
   conversoes: Math.max(1, Number(process.env.CONVERSOES_SIMULTANEAS || 1)),
   downloads: Math.max(1, Number(process.env.DOWNLOADS_SIMULTANEOS || 2)),
   reservaGB: Number(process.env.RESERVA_GB || 1),           // espaço que nunca é usado
@@ -97,7 +99,7 @@ app.get('/api/status', async (req, res) => {
   res.json({
     online: true,
     livreBytes: Number.isFinite(livre) ? Math.max(0, livre - CFG.reservaGB * GB) : null,
-    ferramentas: FERR,
+    ferramentas: { ...FERR, conversao: HW.nome ? `chip de vídeo (${HW.nome})` : `processador (libx264 ${CFG.preset})` },
     cookies: fs.existsSync(COOKIES),
     fila: { convertendo: ativos.conv, baixando: ativos.down, esperando: filaConv.length + filaDown.length },
     diasExpirar: CFG.diasExpirar,
@@ -314,16 +316,18 @@ app.delete('/api/job/:id', async (req, res) => {
 });
 
 // ---------------- Execução de processos ----------------
-function exec(j, cmd, args, onLine) {
+function exec(j, cmd, args, onLine, limiteMs) {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     if (j) procs.set(j.id, p);
+    const relogio = limiteMs ? setTimeout(() => { try { p.kill('SIGKILL'); } catch {} }, limiteMs) : null;
     let out = '', err = '', resto = '';
     const linhas = s => { resto += s; const ps = resto.split(/\r\n|\r|\n/); resto = ps.pop(); if (onLine) ps.forEach(l => l && onLine(l)); };
     p.stdout.on('data', c => { const s = c.toString(); out += s; if (out.length > 4e6) out = out.slice(-2e6); linhas(s); });
     p.stderr.on('data', c => { const s = c.toString(); err = (err + s).slice(-20000); linhas(s); });
     p.on('error', e => reject(new Error(`Não consegui executar ${path.basename(cmd)}: ${e.message}`)));
     p.on('close', (code, sinal) => {
+      if (relogio) clearTimeout(relogio);
       if (j) procs.delete(j.id);
       if (resto && onLine) onLine(resto);
       if (j && j.estado === 'cancelado') return reject(new Error('Cancelado'));
@@ -421,7 +425,7 @@ function planoConversao(info, forcarTudo) {
   const { v, a } = info;
   const vOk = !forcarTudo && v.codec_name === 'h264' && /^(yuv420p|yuvj420p)$/.test(v.pix_fmt || '') && (v.width || 0) <= 4096;
   const aOk = !forcarTudo && (!a || ['aac', 'mp3'].includes(a.codec_name)) && (!a || (a.channels || 2) <= 2 || a.codec_name === 'aac');
-  return { vCopia: vOk, aCopia: aOk };
+  return { vCopia: vOk, aCopia: aOk, hw: !vOk && !!HW.nome };
 }
 
 function argsFFmpeg(origem, destino, info, plano) {
@@ -433,8 +437,14 @@ function argsFFmpeg(origem, destino, info, plano) {
     const vf = [];
     if (M > 0) vf.push(`scale=w='if(gte(iw,ih),min(iw,${M}),-2)':h='if(gte(iw,ih),-2,min(ih,${M}))':flags=lanczos`);
     else vf.push('scale=trunc(iw/2)*2:trunc(ih/2)*2');
-    vf.push('format=yuv420p');
-    args.push('-vf', vf.join(','), '-c:v', 'libx264', '-preset', CFG.preset, '-crf', String(CFG.crf), '-profile:v', 'high', '-level:v', '4.2');
+    if (plano.hw) {
+      vf.push(`format=${HW.pixFmt}`);
+      const br = bitrateHW(info);
+      args.push('-vf', vf.join(','), '-c:v', HW.nome, ...HW.extra, '-b:v', br, '-maxrate', br, '-bufsize', br, '-g', '60');
+    } else {
+      vf.push('format=yuv420p');
+      args.push('-vf', vf.join(','), '-c:v', 'libx264', '-preset', CFG.preset, '-crf', String(CFG.crf), '-profile:v', 'high', '-level:v', '4.2');
+    }
     // limita fps absurdos (ex.: 240 fps de câmera lenta) para manter compatível
     const [fn, fd] = String(info.v.avg_frame_rate || '0/1').split('/').map(Number);
     if (fd && fn / fd > 60.5) args.push('-r', '60');
@@ -472,7 +482,7 @@ async function converter(j) {
 
   const tentar = async (plano) => {
     const rapida = plano.vCopia && plano.aCopia;
-    atualizar(j, { etapa: rapida ? 'Ajustando para tocar direto (sem perder qualidade)' : plano.vCopia ? 'Convertendo só o áudio (imagem original preservada)' : 'Convertendo para MP4 universal (H.264 + AAC)' });
+    atualizar(j, { etapa: rapida ? 'Ajustando para tocar direto (sem perder qualidade)' : plano.vCopia ? 'Convertendo só o áudio (imagem original preservada)' : plano.hw ? 'Convertendo pelo chip de vídeo (modo rápido)' : 'Convertendo para MP4 universal (H.264 + AAC)' });
     const t0 = agora();
     await exec(j, CFG.bin.ffmpeg, argsFFmpeg(j.origem, tmp, info, plano), l => {
       const m = l.match(/^out_time_(?:us|ms)=(\d+)/);
@@ -487,13 +497,24 @@ async function converter(j) {
   };
 
   let plano = planoConversao(info, false), saida, aviso;
-  try { saida = await tentar(plano); }
+  // modo rápido pelo chip: se falhar neste vídeo, refaz no processador sem o usuário perder nada
+  const tentarComReserva = async (p) => {
+    if (!p.hw) return tentar(p);
+    try { return await tentar(p); }
+    catch (e) {
+      if (e.message === 'Cancelado') throw e;
+      console.warn('[conversão] chip de vídeo falhou neste arquivo, usando o processador:', e.message, (e.stderr || '').slice(-300));
+      plano = { ...p, hw: false };
+      return tentar(plano);
+    }
+  };
+  try { saida = await tentarComReserva(plano); }
   catch (e) {
     if (e.message === 'Cancelado') throw e;
     if (plano.vCopia || plano.aCopia) { // a cópia direta falhou (timestamps quebrados etc.): recodifica tudo
       console.warn('[conversão] cópia falhou, recodificando:', e.message, (e.stderr || '').slice(-300));
       plano = planoConversao(info, true);
-      try { saida = await tentar(plano); }
+      try { saida = await tentarComReserva(plano); }
       catch (e2) {
         if (e2.message === 'Cancelado') throw e2;
         if (e2.curta && e2.curta.dur >= 1) { saida = e2.curta; aviso = `O arquivo original estava incompleto: deu para recuperar ${fmtDur(saida.dur)} de ${fmtDur(info.dur)}.`; }
@@ -616,8 +637,51 @@ function ipsLocais() {
   try { return Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address); }
   catch { return []; }
 }
+// ---------------- Codificador por hardware ----------------
+// Recodificar no processador (libx264) é o que mais demora. O chip de vídeo faz o mesmo trabalho
+// várias vezes mais rápido, mas cada aparelho/versão do FFmpeg se comporta de um jeito, então
+// cada candidato passa por um teste real: codifica 2 s de vídeo e confere o resultado.
+const HW = { nome: null, pixFmt: 'yuv420p', testado: [] };
+const CANDIDATOS_HW = [
+  { nome: 'h264_mediacodec', extra: ['-ndk_codec', '1'], pix: ['nv12', 'yuv420p'] },  // Android
+  { nome: 'h264_nvenc', extra: ['-preset', 'p4'], pix: ['yuv420p'] },                  // NVIDIA
+  { nome: 'h264_qsv', extra: [], pix: ['nv12'] },                                      // Intel
+  { nome: 'h264_videotoolbox', extra: [], pix: ['yuv420p'] },                          // Mac
+  { nome: 'h264_v4l2m2m', extra: [], pix: ['yuv420p', 'nv12'] },                       // Raspberry e similares
+];
+async function testarEncoder(c, pix) {
+  const out = path.join(os.tmpdir(), `revela-hw-${process.pid}-${c.nome}-${pix}.mp4`);
+  try {
+    await exec(null, CFG.bin.ffmpeg, ['-hide_banner', '-nostdin', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30:duration=2',
+      '-vf', `format=${pix}`, '-c:v', c.nome, ...c.extra, '-b:v', '4M', '-g', '60', '-f', 'mp4', out], null, 25000);
+    const o = await sondar(out);
+    const quadros = Number(o.v.nb_frames || 0);
+    return o.v.codec_name === 'h264' && o.larg === 1280 && (quadros >= 50 || o.dur >= 1.6);
+  } catch { return false; }
+  finally { fsp.rm(out, { force: true }).catch(() => {}); }
+}
+async function detectarHW() {
+  if (!FERR.ffmpeg || CFG.encoder === 'libx264') return;
+  let lista = '';
+  try { lista = await exec(null, CFG.bin.ffmpeg, ['-hide_banner', '-encoders'], null, 15000); } catch { return; }
+  const cands = CANDIDATOS_HW.filter(c => (CFG.encoder === 'auto' || CFG.encoder === c.nome) && new RegExp('\\s' + c.nome + '\\s').test(lista));
+  for (const c of cands) for (const pix of c.pix) {
+    const ok = await testarEncoder(c, pix);
+    HW.testado.push(`${c.nome}/${pix}: ${ok ? 'ok' : 'falhou'}`);
+    if (ok) { Object.assign(HW, { nome: c.nome, extra: c.extra, pixFmt: pix }); return; }
+  }
+}
+// taxa de bits do hardware pelo tamanho da imagem (hardware não tem CRF confiável)
+function bitrateHW(info) {
+  const M = CFG.maxLado > 0 ? CFG.maxLado : 1e9;
+  const lado = Math.min(Math.max(info.larg || 1280, info.alt || 720), M);
+  return lado >= 1900 ? '8M' : lado >= 1260 ? '5M' : lado >= 850 ? '2500k' : '1500k';
+}
+
 async function iniciar() {
   await recuperar();
+  await detectarHW();
+  console.log(HW.nome ? `  Conversão rápida pelo chip de vídeo: ${HW.nome} (${HW.pixFmt})` : `  Conversão pelo processador (libx264 ${CFG.preset})${HW.testado.length ? ' — chip testado e recusado: ' + HW.testado.join(', ') : ''}`);
   setInterval(() => faxina().catch(console.error), 3600e3);
   faxina().catch(console.error);
   const srv = app.listen(CFG.porta, CFG.host, () => {

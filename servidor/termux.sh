@@ -37,6 +37,8 @@ pkill -f "node server.js" 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 cd "$DIR"
 export PORT=8080 HOST=127.0.0.1 DATA_DIR="$DADOS"
+# Celular: chip de vídeo se funcionar; senão o modo mais rápido do processador, em até 1280 px
+export ENCODER="\${ENCODER:-auto}" PRESET="\${PRESET:-ultrafast}" CRF="\${CRF:-23}" MAX_LADO="\${MAX_LADO:-1280}"
 nohup node server.js >> "$DADOS/servidor.log" 2>&1 &
 sleep 2
 rm -f "$DADOS/tunel.log"

@@ -78,3 +78,6 @@ Sem VPS e sem cartão: um Android velho, no Wi-Fi e carregando, vira o servidor.
 4. Ajustes do Android > Apps > Termux > Bateria > Sem restrições.
 
 Limites honestos: o endereço do túnel grátis **muda quando o servidor reinicia** (links já gerados deixam de abrir), o armazenamento é o do celular, e os termos da Cloudflare restringem servir vídeo pela rede deles. Para links permanentes use VPS com domínio próprio.
+
+
+**Conversão rápida:** com `ENCODER=auto` (padrão) o servidor testa o chip de vídeo do aparelho (Android, NVIDIA, Intel, Mac) ao ligar e usa ele quando funciona; se falhar em algum vídeo, refaz no processador. No celular o padrão é `PRESET=ultrafast` e `MAX_LADO=1280`.
